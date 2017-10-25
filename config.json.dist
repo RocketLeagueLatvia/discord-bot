@@ -1,4 +1,6 @@
 {
-  "owner": "",
+  "mongodb": "mongodb://localhost:27017/discord-bot",
+  "owners": [],
+  "prefix": "!",
   "token": ""
 }

@@ -7,7 +7,10 @@ const sqlite = require('sqlite');
 const config = require('./config');
 
 const client = new commando.Client({
-    owner: config.owner
+    commandPrefix: config.prefix,
+    disableEveryone: true,
+    owner: config.owners,
+    unknownCommandResponse: false
 });
 
 client
@@ -16,6 +19,7 @@ client
     .on('debug', pino.debug)
     .on('ready', () => {
         pino.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`);
+        client.user.setGame('with code');
     })
     .on('disconnect', () => {
         pino.warn('Disconnected!');
@@ -59,8 +63,8 @@ client.setProvider(
 ).catch(pino.error);
 
 client.registry
-    .registerGroup('event', 'Event')
     .registerDefaults()
+    .registerGroup('event', 'Event Command Group')
     .registerCommandsIn(path.join(__dirname, 'commands'));
 
 client.login(config.token);
