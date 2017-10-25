@@ -7,7 +7,7 @@ module.exports = class HideCommand extends Command {
     constructor(client) {
         super(client, {
             name: 'event-hide',
-            aliases: ['hide'],
+            aliases: ['hide-event'],
             group: 'event',
             memberName: 'hide',
             description: 'Hides the specified event.',

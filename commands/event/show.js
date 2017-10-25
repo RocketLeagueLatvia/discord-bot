@@ -7,7 +7,7 @@ module.exports = class ShowCommand extends Command {
     constructor(client) {
         super(client, {
             name: 'event-show',
-            aliases: ['show'],
+            aliases: ['show-event'],
             group: 'event',
             memberName: 'show',
             description: 'Shows the specified event.',

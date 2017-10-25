@@ -1,6 +1,8 @@
 const { Command } = require('discord.js-commando');
 const oneLine = require('common-tags').oneLine;
 
+const Event = require('../../lib/event');
+
 module.exports = class ListCommand extends Command {
     constructor(client) {
         super(client, {
