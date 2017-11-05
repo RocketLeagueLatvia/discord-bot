@@ -18,10 +18,6 @@
             2,
             "unix"
         ],
-        "strict":[
-            2,
-            "function"
-        ],
         "semi": [
             2,
             "always"
