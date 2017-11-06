@@ -33,29 +33,29 @@ client
     })
     .on('commandBlocked', (msg, reason) => {
         pino.info(oneLine`
-			Command ${msg.command ? `${msg.command.groupID}:${msg.command.memberName}` : ''}
-			blocked; ${reason}
-		`);
+            Command ${msg.command ? `${msg.command.groupID}:${msg.command.memberName}` : ''}
+            blocked; ${reason}
+            `);
     })
     .on('commandPrefixChange', (guild, prefix) => {
         pino.info(oneLine`
-			Prefix ${prefix === '' ? 'removed' : `changed to ${prefix || 'the default'}`}
-			${guild ? `in guild ${guild.name} (${guild.id})` : 'globally'}.
-		`);
+            Prefix ${prefix === '' ? 'removed' : `changed to ${prefix || 'the default'}`}
+            ${guild ? `in guild ${guild.name} (${guild.id})` : 'globally'}.
+            `);
     })
     .on('commandStatusChange', (guild, command, enabled) => {
         pino.info(oneLine`
-			Command ${command.groupID}:${command.memberName}
-			${enabled ? 'enabled' : 'disabled'}
-			${guild ? `in guild ${guild.name} (${guild.id})` : 'globally'}.
-		`);
+            Command ${command.groupID}:${command.memberName}
+            ${enabled ? 'enabled' : 'disabled'}
+            ${guild ? `in guild ${guild.name} (${guild.id})` : 'globally'}.
+            `);
     })
     .on('groupStatusChange', (guild, group, enabled) => {
         pino.info(oneLine`
-			Group ${group.id}
-			${enabled ? 'enabled' : 'disabled'}
-			${guild ? `in guild ${guild.name} (${guild.id})` : 'globally'}.
-		`);
+            Group ${group.id}
+            ${enabled ? 'enabled' : 'disabled'}
+            ${guild ? `in guild ${guild.name} (${guild.id})` : 'globally'}.
+            `);
     });
 
 client.setProvider(
