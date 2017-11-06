@@ -2,7 +2,7 @@ const { Command } = require('discord.js-commando');
 const oneLine = require('common-tags').oneLine;
 const Player = require('../../lib/player');
 
-module.exports = class HideCommand extends Command {
+module.exports = class LinkCommand extends Command {
     constructor(client) {
         super(client, {
             name: 'link-steam',
@@ -33,7 +33,7 @@ module.exports = class HideCommand extends Command {
         let discordnick = msg.member.nickname || msg.author.username
 
         if (player) {
-            return msg.say('Your account is already linked. Use `!unlink` to unlink it.');
+            return msg.say('Your account is already linked. Use `unlink-steam` to unlink it.');
         }
 
         player = Player.create({
