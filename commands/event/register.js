@@ -1,7 +1,7 @@
 const { Command } = require('discord.js-commando');
 const oneLine = require('common-tags').oneLine;
-
 const Event = require('../../lib/event');
+const Player = require('../../lib/player');
 
 module.exports = class RegisterCommand extends Command {
     constructor(client) {
@@ -28,7 +28,7 @@ module.exports = class RegisterCommand extends Command {
     }
 
     async run(msg, { name }) {
-        let event;
+        let event, player;
 
         if (name !== '') {
             event = await Event.findByName(name);
@@ -44,7 +44,22 @@ module.exports = class RegisterCommand extends Command {
             return msg.say('Sorry, but the registration is closed.');
         }
 
-        // todo: register player to the event
+        // TODO: shouldn't we check if event is visible as well?
+        player = await Player.findByDiscordId(msg.author.id);
+
+        if (!player || !player.steamid64) {
+            return msg.say(oneLine`
+                Looks like you haven't linked your steam id to your discord user.
+                Please, use \`link-steam\` to link it.
+            `);
+        }
+
+        if (await event.hasRegistered(player)) {
+            return msg.say('You are already registered to this event.');
+        }
+
+        player.getMaxMMR();
+        event.register(player);
 
         return msg.say(`Registered you to ${event.name}.`);
     }
