@@ -30,10 +30,14 @@ module.exports = class LinkCommand extends Command {
     async run(msg, { steamid64 }) {
         let discordid = msg.author.id;
         let player = await Player.findByDiscordId(discordid);
-        let discordnick = msg.member.nickname || msg.author.username
+        let discordnick = msg.member.nickname || msg.author.username;
 
-        if (player) {
+        if (player && player.steamid64) {
+            // Player exists and has a steamid linked
             return msg.say('Your account is already linked. Use `unlink-steam` to unlink it.');
+        } else if (player) {
+            // Player exists, but doesn't have a steamid linked
+            player.setSteamId64(steamid64);
         }
 
         player = Player.create({
