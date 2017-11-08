@@ -59,7 +59,7 @@ module.exports = class RegisterCommand extends Command {
         }
 
         player.getMaxMMR();
-        event.register(player);
+        await event.register(player);
 
         return msg.say(`Registered you to ${event.name}.`);
     }

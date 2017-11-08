@@ -1,6 +1,6 @@
 const { Command } = require('discord.js-commando');
 const oneLine = require('common-tags').oneLine;
-
+const Player = require('../../lib/player');
 const Event = require('../../lib/event');
 
 module.exports = class CheckInCommand extends Command {
@@ -28,7 +28,7 @@ module.exports = class CheckInCommand extends Command {
     }
 
     async run(msg, { name }) {
-        let event;
+        let event, player;
 
         if (name !== '') {
             event = await Event.findByName(name);
@@ -44,7 +44,18 @@ module.exports = class CheckInCommand extends Command {
             return msg.say('Sorry, but the check-in is closed.');
         }
 
-        // todo: check-in player to the event
+        // TODO: shouldn't we check if event is visible as well?
+
+        if (!await event.playerIsRegistered(msg.author.id)) {
+            return msg.say(oneLine`
+                You aren't registered to this event.
+                Use \`event-register ${event.name}\` to register.
+            `);
+        }
+
+        // TODO: Handle duplicate check-ins?
+        player = await Player.findByDiscordId(msg.author.id);
+        await event.checkIn(player);
 
         return msg.say(`Checked you in to ${event.name}.`);
     }
