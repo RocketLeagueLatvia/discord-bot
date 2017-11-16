@@ -38,6 +38,10 @@ module.exports = class LinkCommand extends Command {
             return msg.say('Your account is already linked. Use `unlink-steam` to unlink it.');
         }
 
+        if (await Player.steamId64Taken(steamid64)) {
+            return msg.say('Someone is already using this steamid64.');
+        }
+
         // Steamid provided - check if user is in the rocketleague.lv database
         // before touching our own.
         try {
