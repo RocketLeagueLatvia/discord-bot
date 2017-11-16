@@ -53,6 +53,7 @@ module.exports = class CheckInCommand extends Command {
 
         // TODO: Handle duplicate check-ins?
         player = await Player.findByDiscordId(msg.author.id);
+        player.updateMaxMMR();
         await event.checkIn(player);
 
         return msg.say(`Checked you in to ${event.name}.`);
