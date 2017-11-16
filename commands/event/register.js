@@ -36,7 +36,7 @@ module.exports = class RegisterCommand extends Command {
             event = await Event.findCurrentEvent();
         }
 
-        if (!event) {
+        if (!event || !event.visible) {
             return msg.say(`Sorry, but I could not find the event.`);
         }
 
@@ -44,7 +44,6 @@ module.exports = class RegisterCommand extends Command {
             return msg.say('Sorry, but the registration is closed.');
         }
 
-        // TODO: shouldn't we check if event is visible as well?
         player = await Player.findByDiscordId(msg.author.id);
 
         if (!player || !player.steamid64) {

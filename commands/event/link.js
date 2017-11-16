@@ -19,7 +19,6 @@ module.exports = class LinkCommand extends Command {
                         What's your steamid64?
                         If you're not sure, you can get it with https://www.steamidfinder.com/`,
                     type: 'string',
-                    default: '',
                     validate: text => {
                         return !isNaN(text);
                     }

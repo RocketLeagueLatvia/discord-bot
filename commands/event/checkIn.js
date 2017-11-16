@@ -36,15 +36,13 @@ module.exports = class CheckInCommand extends Command {
             event = await Event.findCurrentEvent();
         }
 
-        if (!event) {
+        if (!event || !event.visible) {
             return msg.say(`Sorry, but I could not find the event.`);
         }
 
         if (event.status.checkIn === Event.STATUS.CLOSED) {
             return msg.say('Sorry, but the check-in is closed.');
         }
-
-        // TODO: shouldn't we check if event is visible as well?
 
         if (!await event.playerIsRegistered(msg.author.id)) {
             return msg.say(oneLine`
