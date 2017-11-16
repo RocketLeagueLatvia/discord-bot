@@ -45,9 +45,8 @@ module.exports = class LinkCommand extends Command {
             rllvPlayer = await rllv.RocketLeagueAPI.getPlayer(steamid64);
         } catch (e) {
             if (e instanceof rllv.PlayerNotFoundException) {
-                player.unsetSteamId64();
                 return msg.say(oneLine`
-                    Your steamid wasn\'t found in the http://rocketleague.lv/ database. 
+                    Your steamid wasn\'t found in the http://rocketleague.lv/ database.
                     Ask an administrator to be added first.
                 `);
             }
