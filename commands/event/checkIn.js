@@ -56,6 +56,6 @@ module.exports = class CheckInCommand extends Command {
         player.updateMaxMMR();
         await event.checkIn(player);
 
-        return msg.say(`Checked you in to ${event.name}.`);
+        return msg.say(`${msg.author}, checked you in to ${event.name}.`);
     }
 };
