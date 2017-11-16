@@ -1,6 +1,5 @@
 const { Command } = require('discord.js-commando');
-const oneLine = require('common-tags').oneLine;
-
+const { TournamentListEmbed } = require('../../lib/player-list-embed.js');
 const Event = require('../../lib/event');
 
 module.exports = class CheckInListCommand extends Command {
@@ -40,7 +39,17 @@ module.exports = class CheckInListCommand extends Command {
             return msg.say(`Sorry, but I could not find the event.`);
         }
 
-        // todo: replace with formatted checked-in player list
-        return msg.say(`Yes.`);
+        const players = await event.getCheckedInPlayers();
+
+        if (!players.length) {
+            return msg.say('There are no players checked in for this tournament.');
+        }
+
+        const embed = new TournamentListEmbed(
+            `Checked in players for "${event.name}"`,
+            players
+        );
+
+        return msg.channel.send({embed: embed.getEmbed()});
     }
 };
