@@ -1,5 +1,4 @@
 const { Command } = require('discord.js-commando');
-const oneLine = require('common-tags').oneLine;
 
 const Event = require('../../lib/event');
 

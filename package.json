@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha",
+    "lint": "eslint index.js lib commands"
   },
   "repository": {
     "type": "git",
@@ -24,5 +25,9 @@
     "mongodb": "^2.2.33",
     "pino": "^4.8.0",
     "sqlite": "^2.8.0"
+  },
+  "devDependencies": {
+    "mocha": "^4.0.1",
+    "rewire": "^3.0.1"
   }
 }
