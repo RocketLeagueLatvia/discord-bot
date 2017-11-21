@@ -15,4 +15,29 @@ class RocketLeagueAPI {
     }
 }
 
-module.exports = {RocketLeagueAPI};
+
+class Message {
+    async say(msg) {
+        return msg;
+    }
+}
+
+
+class Collection {
+    has() {
+        return true;
+    } 
+
+    get() {}
+}
+
+
+class Client {
+    constructor(options) {
+        this.registry = {
+            types: new Collection()
+        };
+    }
+}
+
+module.exports = {RocketLeagueAPI, Client, Message};
