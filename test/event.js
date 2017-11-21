@@ -397,9 +397,4 @@ describe('Event', function() {
             deleteEvents(e._id);
         });
     });
-
-    after(function () {
-        // Close database connection, so process ends cleanly
-        getEventClient().client.close();
-    });
 });

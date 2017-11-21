@@ -193,9 +193,4 @@ describe('Player', function () {
             deletePlayers(player._id);
         });
     });
-
-    after(function () {
-        // Close database connection, so process ends cleanly
-        getPlayerClient().client.close();
-    });
 });
