@@ -43,7 +43,7 @@ module.exports = class RegistrationListCommand extends Command {
         const players = await event.getRegisteredPlayers();
 
         if (!players.length) {
-            return msg.say('There are no players registered for this tournament.');
+            return msg.say('There are no players registered for this event.');
         }
 
         const embed = new TournamentListEmbed(

@@ -17,6 +17,15 @@ class RocketLeagueAPI {
 
 
 class Message {
+    
+    constructor() {
+        this.channel = {
+            send: function (msg) {
+                return msg;
+            }
+        };
+    }
+
     async say(msg) {
         return msg;
     }
@@ -34,6 +43,7 @@ class Collection {
 
 class Client {
     constructor(options) {
+        this.options = options;
         this.registry = {
             types: new Collection()
         };
