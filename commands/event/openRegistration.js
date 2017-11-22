@@ -16,7 +16,6 @@ module.exports = class OpenRegistrationCommand extends Command {
                     key: 'name',
                     prompt: 'What event do you want to open the registration to?',
                     type: 'string',
-                    default: ''
                 }
             ]
         });
@@ -30,11 +29,7 @@ module.exports = class OpenRegistrationCommand extends Command {
     async run(msg, { name }) {
         let event;
 
-        if (name !== '') {
-            event = await Event.findByName(name);
-        } else {
-            event = await Event.findCurrentEvent();
-        }
+        event = await Event.findByName(name);
 
         if (!event) {
             return msg.say(`Sorry, but I could not find the event.`);
