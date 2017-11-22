@@ -1,9 +1,12 @@
 const assert = require('assert');
 const rewire = require('rewire');
-const Event = rewire('../lib/event.js');
+const oneLine = require('common-tags').oneLine;
+const Event = rewire('../lib/event');
+const Player = rewire('../lib/player');
 const prefix = require('../config').prefix;
-const {Client, Message} = require('./lib/mock.js');
-const { getClient } = require('./lib/mongo.js');
+const mock = require('./lib/mock');
+const { getClient } = require('./lib/mongo');
+const constants = require('./lib/constants');
 
 const CreateCommand = require('../commands/event/create');
 const ShowCommand = require('../commands/event/show');
@@ -16,6 +19,10 @@ const CloseRegistration = require('../commands/event/closeRegistration');
 const CloseCheckInCommand = require('../commands/event/closeCheckin');
 const OpenCheckInCommand  = require('../commands/event/openCheckIn');
 
+const LinkCommand  = require('../commands/event/link');
+
+const {Client, Message} = mock;
+
 const client = new Client();
 const msg = new Message();
 const eventName = 'test----event';
@@ -24,14 +31,26 @@ const getCollection = function () {
     return getClient(Event).collection('events');
 };
 
+const getPlayerCollection = function () {
+    return getClient(Player).collection('players');
+};
+
 const getCmdName = function (cmd) {
     return `${prefix}${cmd}`;
 };
 
-const deleteEvents = function (...ids) {
-    return getCollection().deleteMany({ _id: {
+const deleteMany = function (collection, ids) {
+    return collection.deleteMany({ _id: {
         $in: ids
     }});
+};
+
+const deleteEvents = function (...ids) {
+    return deleteMany(getCollection(), ids);
+};
+
+const deletePlayers = function (...ids) {
+    return deleteMany(getPlayerCollection(), ids);
 };
 
 describe('Event commands', function () {
@@ -139,7 +158,7 @@ describe('Event commands', function () {
         });
 
         it('Should list upcoming events (those events which have visible set to true)', async function () {
-            const result = await cmd.run(msg);   
+            const result = await cmd.run(msg);
             assert.ok(result.hasOwnProperty('embed'));
 
             const fields = result.embed.fields;
@@ -154,7 +173,7 @@ describe('Event commands', function () {
             await getCollection().updateMany({}, {
                 $set: { visible: false }
             });
-            assert.strictEqual(await cmd.run(msg), 'Sorry, there are no upcoming events.');   
+            assert.strictEqual(await cmd.run(msg), 'Sorry, there are no upcoming events.');
 
         });
 
@@ -196,7 +215,7 @@ describe('Event commands', function () {
 
         describe(getCmdName('event-registration-list'), function () {
 
-            const cmd = new RegistrationListCommand(client); 
+            const cmd = new RegistrationListCommand(client);
 
             it('Should show the players registered for the specified event if the name is provided', async function () {
                 const result = await cmd.run(msg, {name: event.name});
@@ -235,7 +254,7 @@ describe('Event commands', function () {
 
         describe(getCmdName('event-check-in-list'), function () {
 
-            const cmd = new CheckInListCommand(client); 
+            const cmd = new CheckInListCommand(client);
 
             it('Should list checked in players if name is provided', async function () {
                 const result = await cmd.run(msg, {name: event.name});
@@ -427,8 +446,84 @@ describe('Event commands', function () {
 
 describe('Player commands', function () {
 
+    const createPlayer = async function () {
+        return await Player.create({
+            discordid: constants.discordid, // The same as the discordid for the mock Message user
+            discordnick: 'test player',
+            steamid64: '1234567890',
+            maxmmr: 1000
+        });
+    };
+
     describe(getCmdName('link-steam'), function () {
-        it('Should link the players steamid64 to their discord id');
+
+        const cmd = new LinkCommand(client);
+        let player;
+        let unlinkedPlayer;
+        let unlinkedPlayerDiscordId = '01010101010101';
+        const unlinkedPlayerSteamId64 = '76561198006819706'; // Valid steamid64 for the RLLV API
+        const unlinkedPlayerMsg = new Message();
+        unlinkedPlayerMsg.author.id = unlinkedPlayerDiscordId;
+
+        before(async function () {
+            player = await createPlayer();
+            unlinkedPlayer = await createPlayer();
+
+            getPlayerCollection().updateOne({ _id: unlinkedPlayer._id }, {$set: {
+                discordid: unlinkedPlayerDiscordId
+            }, $unset: {
+                steamid64: ''
+            }});
+
+            unlinkedPlayer.discordid = unlinkedPlayerDiscordId;
+            unlinkedPlayer.steamid64 = null;
+
+        });
+
+        it('Should ask the player to unlink their steam if it\'s already linked', async function () {
+            const result = await cmd.run(msg, {steamid64: 'XYZ'} );
+            assert.strictEqual('Your account is already linked. Use `unlink-steam` to unlink it.', result);
+        });
+
+        it('Should not allow using a taken steamid64', async function () {
+            const result = await cmd.run(unlinkedPlayerMsg, {steamid64: player.steamid64 });
+            assert.strictEqual('Someone is already using this steamid64.', result);
+        });
+
+        it('Should not allow using a steamid64 which isn\'t stored in the RLLV API', async function () {
+            // FIXME: Uses the actual RLLV API
+            const result = await cmd.run(unlinkedPlayerMsg, {steamid64: 0 });
+            assert.strictEqual(oneLine`
+                    Your steamid wasn\'t found in the http://rocketleague.lv/ database.
+                    Ask an administrator to be added first.
+            `, result);
+        });
+
+        it('Should link the players steamid64 to their discord id, and update the existing db record', async function () {
+            // FIXME: This test shouldn't run in production mode
+            await cmd.run(unlinkedPlayerMsg, {steamid64: unlinkedPlayerSteamId64 });
+            const unlinkedPlayerRecord = await getPlayerCollection().findOne({ _id: unlinkedPlayer._id });
+            assert.strictEqual(unlinkedPlayerRecord.steamid64, unlinkedPlayerSteamId64);
+        });
+
+        it('Should link the players steamid64 to their discord id, and create a new db record if it doesn\'t exist', async function () {
+            // FIXME: This test shouldn't run in production mode
+
+            // Free the steamid of the unlinked player
+            await getPlayerCollection().findOneAndDelete({ _id: unlinkedPlayer._id });
+
+            // Use unlinked player's discord id and steamid64
+            await cmd.run(unlinkedPlayerMsg, {steamid64: unlinkedPlayerSteamId64});
+
+            const newPlayerRecord = await getPlayerCollection().findOne({ steamid64: unlinkedPlayerSteamId64});
+            assert.strictEqual(newPlayerRecord.discordid, unlinkedPlayerDiscordId);
+            assert.strictEqual(newPlayerRecord.steamid64, unlinkedPlayerSteamId64);
+        });
+
+        after(async function () {
+            deletePlayers(player._id, unlinkedPlayer._id);
+            await getPlayerCollection().findOneAndDelete({ discordid: unlinkedPlayerDiscordId });
+        });
     });
 
     describe(getCmdName('unlink-steam'), function () {

@@ -63,7 +63,7 @@ module.exports = class LinkCommand extends Command {
                 maxmmr: rllvPlayer.maxmmr
             });
         } else {
-            player = Player.create({
+            player = await Player.create({
                 discordid,
                 discordnick,
                 steamid64,

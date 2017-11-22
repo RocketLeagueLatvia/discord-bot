@@ -1,4 +1,5 @@
 const { PlayerNotFoundException } = require('../../lib/rllv-api.js');
+const constants = require('./constants');
 
 class RocketLeagueAPI {
     static async getPlayer(steamid64) {
@@ -19,6 +20,15 @@ class RocketLeagueAPI {
 class Message {
     
     constructor() {
+        this.author = {
+            id: constants.discordid,
+            username: 'mockuser' 
+        };
+
+        this.member = {
+            nickname: 'mocknickname'
+        };
+
         this.channel = {
             send: function (msg) {
                 return msg;
