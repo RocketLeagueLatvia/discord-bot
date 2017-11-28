@@ -57,7 +57,7 @@ module.exports = class RegisterCommand extends Command {
             return msg.say('You are already registered to this event.');
         }
 
-        player.updateMaxMMR();
+        await player.updateMaxMMR();
         await event.register(player);
 
         return msg.say(`${msg.author}, registered you to ${event.name}.`);

@@ -19,13 +19,17 @@ const CloseRegistration = require('../commands/event/closeRegistration');
 const CloseCheckInCommand = require('../commands/event/closeCheckin');
 const OpenCheckInCommand  = require('../commands/event/openCheckIn');
 
-const LinkCommand  = require('../commands/event/link');
+const LinkCommand = require('../commands/event/link');
+const UnlinkCommand = require('../commands/event/unlink');
+const RegisterCommand = require('../commands/event/register');
+const CheckInCommand  = require('../commands/event/checkIn');
 
 const {Client, Message} = mock;
 
 const client = new Client();
 const msg = new Message();
 const eventName = 'test----event';
+const validSteamId = '76561198006819706'; // Valid steamid64 for the RLLV API
 
 const getCollection = function () {
     return getClient(Event).collection('events');
@@ -451,7 +455,6 @@ describe('Player commands', function () {
             discordid: constants.discordid, // The same as the discordid for the mock Message user
             discordnick: 'test player',
             steamid64: '1234567890',
-            maxmmr: 1000
         });
     };
 
@@ -461,7 +464,7 @@ describe('Player commands', function () {
         let player;
         let unlinkedPlayer;
         let unlinkedPlayerDiscordId = '01010101010101';
-        const unlinkedPlayerSteamId64 = '76561198006819706'; // Valid steamid64 for the RLLV API
+        const unlinkedPlayerSteamId64 = validSteamId; // Valid steamid64 for the RLLV API
         const unlinkedPlayerMsg = new Message();
         unlinkedPlayerMsg.author.id = unlinkedPlayerDiscordId;
 
@@ -527,14 +530,312 @@ describe('Player commands', function () {
     });
 
     describe(getCmdName('unlink-steam'), function () {
-        it('Should unlink the players steamid64 from their discord id');
+
+        const cmd = new UnlinkCommand(client);
+        const unlinkedReturnMsg = 'Your account isn\'t linked. Use `link-steam` to link it!';
+        let player;
+        let playerWithNoSteamId;
+
+        before(async function () {
+            player = await createPlayer();
+            playerWithNoSteamId = await createPlayer();
+        });
+
+        it('Should return a message if the player isn\'t found in the player database.', async function () {
+            const message = new Message();
+            message.author.id = '0x0x0x0x0x';
+
+            let result = await cmd.run(message);
+
+            assert.strictEqual(
+                result,
+                unlinkedReturnMsg
+            );
+        });
+
+        it('Should return a message if the player has unlinked their steam (player record is found in the database, but has no steamid64 attached).', async function () {
+
+            const playerWithNoSteamDiscordId = 'xyxyxyyxyx';
+            const message = new Message();
+
+            message.author.id = playerWithNoSteamDiscordId;
+
+            await getPlayerCollection().updateOne({ _id: playerWithNoSteamId._id }, {
+                $set: {
+                    discordid: playerWithNoSteamDiscordId
+                },
+                $unset: {
+                    steamid64: ''
+                }
+            });
+
+            delete playerWithNoSteamId.steamid64;
+            playerWithNoSteamId.discordid = playerWithNoSteamDiscordId;
+
+            let result = await cmd.run(message);
+
+            assert.strictEqual(
+                result,
+                unlinkedReturnMsg
+            );
+        });
+
+        it('Should unlink the players steamid64 from their discord id', async function () {
+            const result = await cmd.run(msg);
+            const playerRecord = await getPlayerCollection().findOne({ _id: player._id });
+            assert.ok(!playerRecord.steamid64);
+            assert.strictEqual(
+                result,
+                'Account successfully unlinked!'
+            );
+        });
+
+        after(async function () {
+            deletePlayers(player._id, playerWithNoSteamId._id);
+        });
     });
 
     describe(getCmdName('event-register'), function () {
-        it('Should register the player to the event');
+
+        const cmd = new RegisterCommand(client);
+        const playerNoSteamDiscordId = '302d-l23dl0-ld';
+        const playerRealMsg = new Message();
+
+        let player;
+        let playerNoSteam;
+        let playerReal;
+        let event;
+        let playerRealDiscordId = '01010101010101';
+        let playerRealMaxMMR;
+
+        playerRealMsg.author.id = playerRealDiscordId;
+
+        before(async function () {
+            player = await createPlayer();
+            playerNoSteam = await createPlayer();
+            playerReal = await createPlayer();
+            playerRealMaxMMR = 1;
+            event = await Event.create(eventName);
+
+            await getPlayerCollection().updateOne({ _id: playerReal._id }, {
+                $set: {
+                    discordid: playerRealDiscordId,
+                    steamid64: validSteamId,
+                    maxmmr: playerRealMaxMMR
+                }
+            });
+        });
+
+        it('Shouldn\'t allow registering to invisible events', async function () {
+            await getCollection().updateOne({ _id: event._id}, {
+                $set: {
+                    'visible': false,
+                    'status.registration': Event.STATUS.OPEN
+                }
+            });
+
+            const result = await cmd.run(msg, { name: eventName });
+
+            assert.strictEqual(
+                result,
+                'Sorry, but I could not find the event.'
+            );
+        });
+
+        it('Shouldn\'t allow registering to events which have registration closed', async function () {
+            await getCollection().updateOne({ _id: event._id}, {
+                $set: {
+                    'visible': true,
+                    'status.registration': Event.STATUS.CLOSED
+                }
+            });
+
+            const result = await cmd.run(msg, { name: eventName });
+
+            assert.strictEqual(
+                result,
+                'Sorry, but the registration is closed.'
+            );
+        });
+
+        it('Shouldn\'t allow registering if their steam isn\'t linked', async function () {
+            const message = new Message();
+            message.author.id = playerNoSteamDiscordId;
+
+            await getCollection().updateOne({ _id: event._id}, {
+                $set: {
+                    'visible': true,
+                    'status.registration': Event.STATUS.OPEN
+                }
+            });
+
+            await getPlayerCollection().updateOne({ _id: playerNoSteam._id }, {
+                $set: { discordid: playerNoSteamDiscordId },
+                $unset: { steamid64: ''}
+            });
+
+            delete playerNoSteam.discordid;
+            playerNoSteam.discordid = playerNoSteamDiscordId;
+
+            const result = await cmd.run(message, { name: eventName });
+            assert.strictEqual(
+                result,
+                oneLine`
+                    Looks like you haven't linked your steam id to your discord user.
+                    Please, use \`link-steam\` to link it.
+                `
+            );
+        });
+
+        it('Should tell the player if they are already registered', async function () {
+            await event.register(player);
+            const result = await cmd.run(msg, { name: eventName });
+            assert.strictEqual(
+                result,
+                'You are already registered to this event.'
+            );
+        });
+
+        it('Should update their MMR on registration', async function () {
+            await getCollection().updateOne({ _id: event._id}, {
+                $unset: {
+                    'players': [],
+                }
+            });
+
+            await cmd.run(playerRealMsg, { name: eventName });
+
+            const playerRealRecord = await getPlayerCollection().findOne({ _id: playerReal._id });
+
+            assert.ok(playerRealRecord.maxmmr != playerRealMaxMMR);
+        });
+
+        it('Should register the player to the event', async function () {
+
+            await getCollection().updateOne({ _id: event._id}, {
+                $unset: {
+                    'players': [],
+                }
+            });
+        });
+
+        after(async function () {
+            deletePlayers(player._id, playerNoSteam._id, playerReal._id);
+            deleteEvents(event._id);
+        });
     });
 
     describe(getCmdName('event-check-in'), function () {
-        it('Should check the player in to the event');
+
+        const cmd = new CheckInCommand(client);
+        const playerRealMsg = new Message();
+        let player;
+        let playerReal;
+        let event;
+        let playerRealDiscordId = '01010101010101';
+        let playerRealMaxMMR = 1;
+        playerRealMsg.author.id = playerRealDiscordId;
+
+
+        before(async function () {
+            player = await createPlayer();
+            playerReal = await createPlayer();
+            event = await Event.create(eventName);
+
+            await getPlayerCollection().updateOne({ _id: playerReal._id }, {
+                $set: {
+                    discordid: playerRealDiscordId,
+                    steamid64: validSteamId,
+                    maxmmr: playerRealMaxMMR
+                }
+            });
+
+            playerReal.discordid = playerRealDiscordId;
+            playerReal.steamid64 = validSteamId;
+            playerReal.maxmmr = 1;
+        });
+
+        it('Should not allow checking in to an invisible event', async function () {
+            await getCollection().updateOne({ _id: event._id }, {
+                $set: {
+                    visible: false,
+                }
+            });
+
+            assert.strictEqual(
+                await cmd.run(msg, {name: eventName }),
+                'Sorry, but I could not find the event.'
+            );
+        });
+
+        it('Should not allow checking in if checkin for that event is closed', async function () {
+            await getCollection().updateOne({ _id: event._id }, {
+                $set: {
+                    'visible': true,
+                    'status.checkIn': Event.STATUS.CLOSED,
+                }
+            });
+
+            assert.strictEqual(
+                await cmd.run(msg, {name: eventName }),
+                'Sorry, but the check-in is closed.'
+            );
+        });
+
+        it('Should check if the player is registered to the event', async function () {
+            await getCollection().updateOne({ _id: event._id }, {
+                $set: {
+                    'visible': true,
+                    'status.checkIn': Event.STATUS.OPEN,
+                    'players': []
+                }
+            });
+
+            assert.strictEqual(
+                await cmd.run(msg, {name: eventName }),
+                oneLine`
+                    You aren't registered to this event.
+                    Use \`event-register ${event.name}\` to register.
+                `
+            );
+        });
+
+        it('Should update the max MMR on checkin', async function () {
+
+            await event.register(playerReal);
+
+            await cmd.run(playerRealMsg, {name: eventName});
+            const playerRealRecord = await getPlayerCollection().findOne({ _id: playerReal._id });
+
+            assert.ok(playerRealRecord.maxmmr != playerRealMaxMMR);
+        });
+
+        it('Should check the player in to the event', async function () {
+
+            await getCollection().updateOne({ _id: event._id }, {
+                $set: {
+                    'visible': true,
+                    'status.checkIn': Event.STATUS.OPEN,
+                    'players': []
+                }
+            });
+
+            await event.register(playerReal);
+            await cmd.run(playerRealMsg, {name: eventName});
+
+            const eventRecord = await getCollection().findOne({
+                '_id': event._id,
+                'players.discordid': playerRealDiscordId,
+                'players.checkedIn': true
+            });
+
+            assert.ok(eventRecord);
+        });
+
+        after(async function () {
+            deletePlayers(player._id, playerReal._id);
+            deleteEvents(event._id);
+        });
+
     });
 });
