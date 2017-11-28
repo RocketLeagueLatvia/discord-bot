@@ -1,6 +1,5 @@
 const { Command } = require('discord.js-commando');
-const oneLine = require('common-tags').oneLine;
-
+const { TournamentListEmbed } = require('../../lib/player-list-embed.js');
 const Event = require('../../lib/event');
 
 module.exports = class RegistrationListCommand extends Command {
@@ -28,6 +27,7 @@ module.exports = class RegistrationListCommand extends Command {
     }
 
     async run(msg, { name }) {
+
         let event;
 
         if (name !== '') {
@@ -36,11 +36,21 @@ module.exports = class RegistrationListCommand extends Command {
             event = await Event.findCurrentEvent();
         }
 
-        if (!event) {
+        if (!event || !event.visible) {
             return msg.say(`Sorry, but I could not find the event.`);
         }
 
-        // todo: replace with formatted registered player list
-        return msg.say(`Yes.`);
+        const players = await event.getRegisteredPlayers();
+
+        if (!players.length) {
+            return msg.say('There are no players registered for this event.');
+        }
+
+        const embed = new TournamentListEmbed(
+            `Registered players for "${event.name}"`,
+            players
+        );
+
+        return msg.channel.send({embed: embed.getEmbed()});
     }
 };

@@ -1,6 +1,4 @@
 const { Command } = require('discord.js-commando');
-const oneLine = require('common-tags').oneLine;
-
 const Event = require('../../lib/event');
 
 module.exports = class ShowCommand extends Command {
@@ -16,8 +14,7 @@ module.exports = class ShowCommand extends Command {
                 {
                     key: 'name',
                     prompt: 'What event do you want to show?',
-                    type: 'string',
-                    default: ''
+                    type: 'string'
                 }
             ]
         });

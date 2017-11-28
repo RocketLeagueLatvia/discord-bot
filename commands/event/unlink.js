@@ -19,7 +19,11 @@ module.exports = class UnlinkCommand extends Command {
             return msg.say('Your account isn\'t linked. Use `link-steam` to link it!');
         }
 
-        await player.delete();
+        if (!player.steamid64) {
+            return msg.say('Your account isn\'t linked. Use `link-steam` to link it!');
+        }
+
+        await player.unsetSteamId64();
 
         return msg.say('Account successfully unlinked!');
     }
